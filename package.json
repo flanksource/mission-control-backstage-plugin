@@ -1,0 +1,16 @@
+{
+  "name": "@flanksource/mission-control-backstage-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backstage plugins for Flanksource Mission Control",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "plugins/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -A run build",
+    "lint": "yarn workspaces foreach -A run lint",
+    "test": "yarn workspaces foreach -A run test",
+    "clean": "yarn workspaces foreach -A run clean"
+  }
+}

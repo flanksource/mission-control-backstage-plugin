@@ -1,0 +1,1 @@
+export { EntityMissionControlConfigTable } from './EntityMissionControlConfigTable';
