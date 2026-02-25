@@ -1,0 +1,9 @@
+{
+  "name": "mission-control-backstage-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd packages/backend && yarn start --config ../../app-config.yaml --config ../../app-config.local.yaml & cd packages/app && yarn start --config ../../app-config.yaml --config ../../app-config.local.yaml",
+    "start": "cd packages/backend && yarn start --config ../../app-config.yaml --config ../../app-config.local.yaml"
+  }
+}

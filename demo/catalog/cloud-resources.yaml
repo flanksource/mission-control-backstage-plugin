@@ -1,0 +1,32 @@
+# Cloud and infrastructure entities using real IDs from demo.flanksource.com.
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: demo-vpc
+  description: AWS VPC tracked in Mission Control
+  annotations:
+    flanksource.com/config-id: "64643432-3738-3134-3039-356131316437"
+  tags:
+    - aws
+    - vpc
+spec:
+  type: network
+  lifecycle: production
+  owner: cloud-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: crossplane-eks-cluster
+  description: Crossplane-managed EKS cluster
+  annotations:
+    flanksource.com/config-id: "67d97547-7f21-4616-9ede-bd84655afad8"
+    flanksource.com/aggregation-depth: "2"
+  tags:
+    - crossplane
+    - eks
+spec:
+  type: cluster
+  lifecycle: production
+  owner: cloud-team

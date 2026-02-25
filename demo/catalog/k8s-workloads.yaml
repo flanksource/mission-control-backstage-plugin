@@ -1,0 +1,48 @@
+# Kubernetes workload entities demonstrating different annotation patterns.
+# These use real config IDs from demo.flanksource.com.
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: canary-checker
+  description: Canary Checker - Kubernetes-native health check platform
+  annotations:
+    flanksource.com/config-id: "8555f73a-2d9c-46d3-b881-ac8b57347bee"
+  tags:
+    - kubernetes
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: argocd-server
+  description: ArgoCD Server - GitOps continuous delivery
+  annotations:
+    flanksource.com/config-type: "Kubernetes::Deployment"
+    flanksource.com/config-name: "argocd-server"
+  tags:
+    - kubernetes
+    - argocd
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: argocd-controllers
+  description: ArgoCD controllers with aggregation
+  annotations:
+    flanksource.com/config-ids: "866b7282-e86d-4104-816b-74c9b0d0527d,60270010-11f6-4ae1-a50e-98d7385a0673,13fe8e7d-0bfa-4105-a3dc-80b376de5450"
+    flanksource.com/aggregation-depth: "1"
+  tags:
+    - kubernetes
+    - argocd
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team

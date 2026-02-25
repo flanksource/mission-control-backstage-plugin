@@ -1,0 +1,27 @@
+# Entities WITHOUT Mission Control annotations.
+# These demonstrate that isMissionControlAvailable correctly hides the
+# MC card and tab when no flanksource.com/* annotations are present.
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: internal-docs-site
+  description: Internal documentation site - not tracked in Mission Control
+  tags:
+    - docs
+spec:
+  type: website
+  lifecycle: production
+  owner: platform-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: legacy-api-gateway
+  description: Legacy API gateway - no Mission Control integration
+  tags:
+    - legacy
+spec:
+  type: service
+  lifecycle: deprecated
+  owner: platform-team

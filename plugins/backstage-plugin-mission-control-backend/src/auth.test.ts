@@ -10,7 +10,7 @@ describe('MissionControlAuth', () => {
   });
 
   describe('static-token method', () => {
-    it('returns the configured apiToken', async () => {
+    it('returns Basic auth header with token', async () => {
       const config = new ConfigReader({
         missionControl: {
           baseUrl: 'https://mc.example.com',
@@ -18,7 +18,8 @@ describe('MissionControlAuth', () => {
         },
       });
       const auth = new MissionControlAuth(config);
-      expect(await auth.getToken()).toBe('my-token');
+      const header = await auth.getAuthHeader();
+      expect(header).toBe(`Basic ${Buffer.from('token:my-token').toString('base64')}`);
     });
 
     it('throws when apiToken is missing', async () => {
@@ -29,7 +30,7 @@ describe('MissionControlAuth', () => {
         },
       });
       const auth = new MissionControlAuth(config);
-      await expect(auth.getToken()).rejects.toThrow('apiToken is required');
+      await expect(auth.getAuthHeader()).rejects.toThrow('apiToken is required');
     });
   });
 
@@ -49,12 +50,12 @@ describe('MissionControlAuth', () => {
 
       const auth = new MissionControlAuth(config);
 
-      const token1 = await auth.getToken('user:default/john');
-      expect(token1).toBe('exchanged-token');
+      const header1 = await auth.getAuthHeader('user:default/john');
+      expect(header1).toBe('Bearer exchanged-token');
       expect(mockedFetch).toHaveBeenCalledTimes(1);
 
-      const token2 = await auth.getToken('user:default/john');
-      expect(token2).toBe('exchanged-token');
+      const header2 = await auth.getAuthHeader('user:default/john');
+      expect(header2).toBe('Bearer exchanged-token');
       expect(mockedFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -73,7 +74,7 @@ describe('MissionControlAuth', () => {
       });
 
       const auth = new MissionControlAuth(config);
-      await expect(auth.getToken('user:default/john')).rejects.toThrow('Token exchange failed: 401 Unauthorized');
+      await expect(auth.getAuthHeader('user:default/john')).rejects.toThrow('Token exchange failed: 401 Unauthorized');
     });
 
     it('throws when serviceAccountToken is missing', async () => {
@@ -85,7 +86,7 @@ describe('MissionControlAuth', () => {
       });
 
       const auth = new MissionControlAuth(config);
-      await expect(auth.getToken()).rejects.toThrow('serviceAccountToken is required');
+      await expect(auth.getAuthHeader()).rejects.toThrow('serviceAccountToken is required');
     });
   });
 
@@ -97,6 +98,7 @@ describe('MissionControlAuth', () => {
       },
     });
     const auth = new MissionControlAuth(config);
-    expect(await auth.getToken()).toBe('default-token');
+    const header = await auth.getAuthHeader();
+    expect(header).toBe(`Basic ${Buffer.from('token:default-token').toString('base64')}`);
   });
 });

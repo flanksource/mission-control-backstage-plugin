@@ -20,7 +20,11 @@ export { missionControlApiRef } from './api/types';
 export type {
   MissionControlApi,
   ConfigItem,
+  ConfigDetail,
   ConfigChange,
+  RelatedConfig,
   HealthCheckSummary,
   CatalogSummary,
+  PlaybookRun,
+  ConfigAccessSummary,
 } from './api/types';

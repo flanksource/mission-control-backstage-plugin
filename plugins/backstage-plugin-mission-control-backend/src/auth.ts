@@ -20,21 +20,22 @@ export class MissionControlAuth {
     this.apiToken = config.getOptionalString('missionControl.auth.apiToken');
   }
 
-  async getToken(userRef?: string): Promise<string> {
+  async getAuthHeader(userRef?: string): Promise<string> {
     if (this.authMethod === 'static-token') {
       if (!this.apiToken) {
         throw new Error('missionControl.auth.apiToken is required for static-token auth');
       }
-      return this.apiToken;
+      return `Basic ${Buffer.from(`token:${this.apiToken}`).toString('base64')}`;
     }
 
     const cacheKey = userRef ?? '__service__';
     const cached = this.tokenCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.token;
+      return `Bearer ${cached.token}`;
     }
 
-    return this.exchangeToken(cacheKey);
+    const token = await this.exchangeToken(cacheKey);
+    return `Bearer ${token}`;
   }
 
   private async exchangeToken(cacheKey: string): Promise<string> {

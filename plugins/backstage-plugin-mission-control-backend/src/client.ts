@@ -8,14 +8,14 @@ export class MissionControlClient {
   ) {}
 
   async fetch(path: string, options: { userRef?: string; init?: RequestInit } = {}): Promise<Response> {
-    const token = await this.auth.getToken(options.userRef);
+    const authHeader = await this.auth.getAuthHeader(options.userRef);
     const url = `${this.baseUrl}${path}`;
 
     const response = await fetch(url, {
       ...options.init,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: authHeader,
         ...options.init?.headers,
       },
     });

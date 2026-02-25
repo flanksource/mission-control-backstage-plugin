@@ -1,0 +1,12 @@
+# Copy this file to app-config.local.yaml and fill in the values.
+# app-config.local.yaml is gitignored and will not be committed.
+
+missionControl:
+  baseUrl: https://demo.flanksource.com
+  auth:
+    method: static-token
+    apiToken: YOUR_MC_API_TOKEN_HERE
+
+    # For token-exchange auth (alternative to static-token):
+    # method: token-exchange
+    # serviceAccountToken: YOUR_SERVICE_ACCOUNT_TOKEN_HERE

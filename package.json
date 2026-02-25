@@ -4,13 +4,25 @@
   "private": true,
   "description": "Backstage plugins for Flanksource Mission Control",
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "workspaces": [
-    "plugins/*"
+    "plugins/*",
+    "demo/packages/*"
   ],
   "scripts": {
     "build": "yarn workspaces foreach -A run build",
     "lint": "yarn workspaces foreach -A run lint",
     "test": "yarn workspaces foreach -A run test",
-    "clean": "yarn workspaces foreach -A run clean"
+    "clean": "yarn workspaces foreach -A run clean",
+    "dev": "cd demo && yarn dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "resolutions": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
   }
 }

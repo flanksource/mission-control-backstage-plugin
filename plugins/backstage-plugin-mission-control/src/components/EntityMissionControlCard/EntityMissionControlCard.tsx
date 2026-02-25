@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -7,10 +7,8 @@ import {
   Typography,
   makeStyles,
 } from '@material-ui/core';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi } from '@backstage/core-plugin-api';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { missionControlApiRef, CatalogSummary, ConfigHealth } from '../../api/types';
+import { ConfigItem, ConfigHealth } from '../../api/types';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 import { useConfigForEntity } from '../../hooks/useConfigForEntity';
 
@@ -39,44 +37,31 @@ function Metric({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-function worstHealth(summary: CatalogSummary): ConfigHealth {
-  if (summary.unhealthy > 0) return 'unhealthy';
-  if (summary.warning > 0) return 'warning';
-  if (summary.healthy > 0) return 'healthy';
-  return 'unknown';
+function summarizeConfigs(configs: ConfigItem[]) {
+  let healthy = 0, unhealthy = 0, warning = 0;
+  let totalCost30d = 0;
+  let totalChanges = 0;
+
+  for (const c of configs) {
+    if (c.health === 'healthy') healthy++;
+    else if (c.health === 'unhealthy') unhealthy++;
+    else if (c.health === 'warning') warning++;
+    totalCost30d += c.cost_total_30d ?? 0;
+    totalChanges += c.summary?.changes ?? c.changes ?? 0;
+  }
+
+  const worstHealth: ConfigHealth =
+    unhealthy > 0 ? 'unhealthy' : warning > 0 ? 'warning' : healthy > 0 ? 'healthy' : 'unknown';
+
+  return { healthy, unhealthy, warning, totalCost30d, totalChanges, worstHealth };
 }
 
 export function EntityMissionControlCard() {
-  const { configs, loading: configsLoading, error: configsError } = useConfigForEntity();
-  const api = useApi(missionControlApiRef);
-  const [summary, setSummary] = useState<CatalogSummary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState<Error>();
-
-  useEffect(() => {
-    if (configsLoading || configs.length === 0) {
-      setSummaryLoading(false);
-      return;
-    }
-
-    const configIds = configs.map(c => c.id);
-    api.getCatalogSummary(configIds)
-      .then(data => {
-        setSummary(data);
-        setSummaryLoading(false);
-      })
-      .catch(err => {
-        setSummaryError(err);
-        setSummaryLoading(false);
-      });
-  }, [configs, configsLoading, api]);
-
-  const loading = configsLoading || summaryLoading;
-  const error = configsError || summaryError;
+  const { configs, loading, error } = useConfigForEntity();
 
   if (loading) return <Progress />;
   if (error) return <ResponseErrorPanel error={error} />;
-  if (!summary) {
+  if (configs.length === 0) {
     return (
       <Card>
         <CardHeader title="Mission Control" />
@@ -87,11 +72,13 @@ export function EntityMissionControlCard() {
     );
   }
 
+  const summary = summarizeConfigs(configs);
+
   return (
     <Card>
       <CardHeader
         title="Mission Control"
-        action={<StatusBadge health={worstHealth(summary)} />}
+        action={<StatusBadge health={summary.worstHealth} />}
       />
       <CardContent>
         <Grid container spacing={2}>
@@ -102,9 +89,7 @@ export function EntityMissionControlCard() {
             <Metric value={`$${summary.totalCost30d.toFixed(2)}`} label="Cost (30d)" />
           </Grid>
           <Grid item xs={4}><Metric value={summary.totalChanges} label="Changes" /></Grid>
-          <Grid item xs={4}>
-            <Metric value={`${summary.checksHealthy}/${summary.checksHealthy + summary.checksUnhealthy}`} label="Checks Passing" />
-          </Grid>
+          <Grid item xs={4}><Metric value={configs.length} label="Configs" /></Grid>
         </Grid>
       </CardContent>
     </Card>
