@@ -27,8 +27,8 @@ const overviewContent = (
     </Grid>
     <EntitySwitch>
       <EntitySwitch.Case if={isMissionControlAvailable}>
-        <Grid item md={12}>
-          <EntityMissionControlCard />
+        <Grid item md={6}>
+          <EntityMissionControlCard variant="gridItem" />
         </Grid>
       </EntitySwitch.Case>
     </EntitySwitch>

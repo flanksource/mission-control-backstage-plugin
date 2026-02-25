@@ -18,7 +18,6 @@ import { ConfigRelationshipsTable } from '../ConfigRelationshipsTable/ConfigRela
 import { ConfigSpecView } from '../ConfigSpecView/ConfigSpecView';
 import { PlaybookRunsTable } from '../PlaybookRunsTable/PlaybookRunsTable';
 import { ConfigAccessTable } from '../ConfigAccessTable/ConfigAccessTable';
-import { ConfigPropertiesPanel } from '../ConfigPropertiesPanel/ConfigPropertiesPanel';
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -107,7 +106,6 @@ export function EntityMissionControlContent() {
       </Tabs>
 
       <TabPanel value={tab} index={0}>
-        {primaryConfigId && <ConfigPropertiesPanel configId={primaryConfigId} />}
         <EntityMissionControlConfigTable configs={configs} loading={configsLoading} />
       </TabPanel>
 

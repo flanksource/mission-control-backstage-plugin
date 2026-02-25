@@ -34,13 +34,30 @@ export interface ConfigItem extends Costs {
   agent?: { id: string; name: string };
 }
 
+export interface ConfigProperty {
+  name: string;
+  icon?: string;
+  label?: string;
+  type?: 'url' | 'badge' | 'currency' | 'text' | 'age' | 'hidden';
+  text?: string;
+  max?: number;
+  min?: number;
+  headline?: boolean;
+  value?: string | number | boolean | null;
+  unit?: string;
+  color?: string;
+  namespace?: string;
+  url?: string;
+  links?: { label: string; url: string }[];
+}
+
 export interface ConfigDetail extends ConfigItem {
   config?: Record<string, any>;
   parent_id?: string;
   path?: string;
   external_id?: string[];
   source?: string;
-  properties?: Record<string, any> | null;
+  properties?: ConfigProperty[] | null;
 }
 
 export interface ConfigChange {
