@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { missionControlApiRef, ConfigItem } from '../api/types';
+import { missionControlApiRef, ConfigItem, MissionControlAuthError } from '../api/types';
 import {
   getConfigIds,
   getAnnotation,
   MISSION_CONTROL_CONFIG_TYPE_ANNOTATION,
   MISSION_CONTROL_CONFIG_NAME_ANNOTATION,
 } from '../utils/annotations';
+import { useMCAuth } from '../components/MissionControlAuthProvider/MissionControlAuthProvider';
 
 interface UseConfigResult {
   configs: ConfigItem[];
@@ -18,6 +19,7 @@ interface UseConfigResult {
 export function useConfigForEntity(): UseConfigResult {
   const { entity } = useEntity();
   const api = useApi(missionControlApiRef);
+  const { retryCount, onAuthError } = useMCAuth();
   const [state, setState] = useState<UseConfigResult>({ configs: [], loading: true });
 
   useEffect(() => {
@@ -43,14 +45,19 @@ export function useConfigForEntity(): UseConfigResult {
         }
       } catch (error) {
         if (!cancelled) {
-          setState({ configs: [], loading: false, error: error as Error });
+          if (error instanceof MissionControlAuthError) {
+            onAuthError();
+            setState({ configs: [], loading: true });
+          } else {
+            setState({ configs: [], loading: false, error: error as Error });
+          }
         }
       }
     }
 
     load();
     return () => { cancelled = true; };
-  }, [entity, api]);
+  }, [entity, api, retryCount, onAuthError]);
 
   return state;
 }

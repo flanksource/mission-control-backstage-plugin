@@ -17,11 +17,15 @@ export const missionControlBackendPlugin = createBackendPlugin({
         const auth = new MissionControlAuth(config);
         const client = new MissionControlClient(baseUrl, auth);
 
-        logger.info(`Mission Control backend plugin initialized (baseUrl: ${baseUrl})`);
+        logger.info(`Mission Control backend plugin initialized (baseUrl: ${baseUrl}, auth: ${auth.method})`);
 
-        httpRouter.use(createRouter(client));
+        httpRouter.use(createRouter(client, { method: auth.method, baseUrl }));
         httpRouter.addAuthPolicy({
           path: '/health',
+          allow: 'unauthenticated',
+        });
+        httpRouter.addAuthPolicy({
+          path: '/auth/config',
           allow: 'unauthenticated',
         });
       },

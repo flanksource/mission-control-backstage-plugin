@@ -1,6 +1,8 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import {
   MissionControlApi,
+  AuthConfig,
+  MissionControlAuthError,
   ConfigItem,
   ConfigDetail,
   ConfigChange,
@@ -8,42 +10,78 @@ import {
   HealthCheckSummary,
   CatalogSummary,
   PlaybookRun,
+  PlaybookParam,
+  RunnablePlaybook,
+  PlaybookRunResponse,
   ConfigAccessSummary,
 } from './types';
 
 export class MissionControlClient implements MissionControlApi {
   private discoveryApi: DiscoveryApi;
   private fetchApi: FetchApi;
+  private authConfigCache?: AuthConfig;
 
   constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
     this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
   }
 
-  private async baseUrl(): Promise<string> {
+  private async backendBaseUrl(): Promise<string> {
     return this.discoveryApi.getBaseUrl('mission-control');
   }
 
-  private async get<T>(path: string): Promise<T> {
-    const base = await this.baseUrl();
-    const response = await this.fetchApi.fetch(`${base}${path}`);
+  async getAuthConfig(): Promise<AuthConfig> {
+    if (this.authConfigCache) return this.authConfigCache;
+    const base = await this.backendBaseUrl();
+    const response = await this.fetchApi.fetch(`${base}/auth/config`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch auth config: ${response.status}`);
+    }
+    this.authConfigCache = (await response.json()) as AuthConfig;
+    return this.authConfigCache;
+  }
+
+  private async fetchFromMC<T>(path: string, init?: RequestInit): Promise<T> {
+    const authConfig = await this.getAuthConfig();
+
+    let response: Response;
+    if (authConfig.authMethod === 'pass-through') {
+      try {
+        response = await fetch(`${authConfig.baseUrl}${path}`, {
+          ...init,
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...init?.headers },
+        });
+      } catch {
+        throw new MissionControlAuthError('Failed to fetch from Mission Control (CORS or network error)', 0);
+      }
+    } else {
+      const base = await this.backendBaseUrl();
+      response = await this.fetchApi.fetch(`${base}${path}`, init);
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new MissionControlAuthError(
+        `Authentication required: ${response.status} ${response.statusText}`,
+        response.status,
+      );
+    }
     if (!response.ok) {
       throw new Error(`Mission Control API error: ${response.status} ${response.statusText}`);
     }
     return response.json() as Promise<T>;
   }
 
+  private async get<T>(path: string): Promise<T> {
+    return this.fetchFromMC<T>(path);
+  }
+
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const base = await this.baseUrl();
-    const response = await this.fetchApi.fetch(`${base}${path}`, {
+    return this.fetchFromMC<T>(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!response.ok) {
-      throw new Error(`Mission Control API error: ${response.status} ${response.statusText}`);
-    }
-    return response.json() as Promise<T>;
   }
 
   async getConfigById(id: string): Promise<ConfigItem> {
@@ -102,5 +140,23 @@ export class MissionControlClient implements MissionControlApi {
 
   async getChanges(configIds: string[]): Promise<ConfigChange[]> {
     return this.post<ConfigChange[]>('/api/catalog/changes', { configIds });
+  }
+
+  async getPlaybooksForConfig(configId: string): Promise<RunnablePlaybook[]> {
+    return this.get<RunnablePlaybook[]>(`/api/playbook/list?config_id=${configId}`);
+  }
+
+  async getPlaybookParams(playbookId: string, configId?: string): Promise<PlaybookParam[]> {
+    const body: Record<string, string> = { id: playbookId };
+    if (configId) body.config_id = configId;
+    const result = await this.post<{ params: PlaybookParam[] }>(`/api/playbook/${playbookId}/params`, body);
+    return result.params ?? [];
+  }
+
+  async submitPlaybookRun(playbookId: string, configId?: string, params?: Record<string, any>): Promise<PlaybookRunResponse> {
+    const body: Record<string, any> = { id: playbookId };
+    if (configId) body.config_id = configId;
+    if (params) body.params = params;
+    return this.post<PlaybookRunResponse>('/api/playbook/run', body);
   }
 }

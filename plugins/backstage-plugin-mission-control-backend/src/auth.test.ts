@@ -90,6 +90,30 @@ describe('MissionControlAuth', () => {
     });
   });
 
+  describe('pass-through method', () => {
+    it('throws on getAuthHeader', async () => {
+      const config = new ConfigReader({
+        missionControl: {
+          baseUrl: 'https://mc.example.com',
+          auth: { method: 'pass-through' },
+        },
+      });
+      const auth = new MissionControlAuth(config);
+      await expect(auth.getAuthHeader()).rejects.toThrow('not supported in pass-through mode');
+    });
+
+    it('exposes method via getter', () => {
+      const config = new ConfigReader({
+        missionControl: {
+          baseUrl: 'https://mc.example.com',
+          auth: { method: 'pass-through' },
+        },
+      });
+      const auth = new MissionControlAuth(config);
+      expect(auth.method).toBe('pass-through');
+    });
+  });
+
   it('defaults to static-token method', async () => {
     const config = new ConfigReader({
       missionControl: {

@@ -8,6 +8,7 @@ backend:
     port: 7007
   csp:
     connect-src: ["'self'", 'http:', 'https:']
+    frame-src: ["'self'", 'https://demo.flanksource.com']
   cors:
     origin: http://localhost:3000
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]

@@ -33,8 +33,21 @@ function proxyPost(client: MissionControlClient, path: string) {
   });
 }
 
-export function createRouter(client: MissionControlClient): Router {
+export interface AuthConfig {
+  method: string;
+  baseUrl: string;
+}
+
+export function createRouter(client: MissionControlClient, authConfig?: AuthConfig): Router {
   const router = Router();
+
+  router.get('/auth/config', (_req, res) => {
+    const response: Record<string, string> = { authMethod: authConfig?.method ?? 'static-token' };
+    if (authConfig?.method === 'pass-through') {
+      response.baseUrl = authConfig.baseUrl;
+    }
+    res.json(response);
+  });
 
   router.get('/api/db/configs', proxyGet(client, '/api/db/configs'));
   router.get('/api/db/config_detail', proxyGet(client, '/api/db/config_detail'));
@@ -42,6 +55,14 @@ export function createRouter(client: MissionControlClient): Router {
   router.get('/api/db/rpc/related_configs_recursive', proxyGet(client, '/api/db/rpc/related_configs_recursive'));
   router.get('/api/db/check_summary_for_config', proxyGet(client, '/api/db/check_summary_for_config', { headers: { Prefer: 'count=exact' } }));
   router.get('/api/db/playbook_runs', proxyGet(client, '/api/db/playbook_runs'));
+  router.get('/api/playbook/list', proxyGet(client, '/api/playbook/list'));
+  router.post('/api/playbook/:playbookId/params', asyncHandler(async (req, res) => {
+    const response = await client.fetch(`/api/playbook/${req.params.playbookId}/params`, {
+      init: { method: 'POST', body: JSON.stringify(req.body) },
+    });
+    res.json(await response.json());
+  }));
+  router.post('/api/playbook/run', proxyPost(client, '/api/playbook/run'));
   router.get('/api/db/config_access_summary', proxyGet(client, '/api/db/config_access_summary'));
 
   router.post('/api/catalog/summary', proxyPost(client, '/api/catalog/summary'));

@@ -10,3 +10,11 @@ missionControl:
     # For token-exchange auth (alternative to static-token):
     # method: token-exchange
     # serviceAccountToken: YOUR_SERVICE_ACCOUNT_TOKEN_HERE
+
+    # For pass-through auth (browser authenticates directly with MC):
+    # method: pass-through
+    # No apiToken or serviceAccountToken needed.
+    # Requirements:
+    #   - MC must set CORS: Access-Control-Allow-Origin: <backstage-origin>, Access-Control-Allow-Credentials: true
+    #   - MC Kratos session cookies must use SameSite=None; Secure
+    #   - Backstage CSP must allow frame-src and connect-src for the MC domain

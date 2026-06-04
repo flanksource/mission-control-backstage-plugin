@@ -8,6 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { missionControlApiRef } from './api/types';
 import { MissionControlClient } from './api/MissionControlClient';
+import { withMCAuth } from './components/withMCAuth';
 
 export const rootRouteRef = createRouteRef({ id: 'mission-control' });
 
@@ -30,7 +31,7 @@ export const EntityMissionControlContent = missionControlPlugin.provide(
     component: {
       lazy: () =>
         import('./components/EntityMissionControlContent/EntityMissionControlContent').then(
-          m => m.EntityMissionControlContent,
+          m => withMCAuth(m.EntityMissionControlContent),
         ),
     },
   }),
@@ -42,7 +43,7 @@ export const EntityMissionControlCard = missionControlPlugin.provide(
     component: {
       lazy: () =>
         import('./components/EntityMissionControlCard/EntityMissionControlCard').then(
-          m => m.EntityMissionControlCard,
+          m => withMCAuth(m.EntityMissionControlCard),
         ),
     },
   }),

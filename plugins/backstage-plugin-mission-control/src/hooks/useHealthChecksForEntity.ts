@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { missionControlApiRef, HealthCheckSummary } from '../api/types';
+import { missionControlApiRef, HealthCheckSummary, MissionControlAuthError } from '../api/types';
+import { useMCAuth } from '../components/MissionControlAuthProvider/MissionControlAuthProvider';
 
 interface UseHealthChecksResult {
   checks: HealthCheckSummary[];
@@ -10,6 +11,7 @@ interface UseHealthChecksResult {
 
 export function useHealthChecksForEntity(configIds: string[]): UseHealthChecksResult {
   const api = useApi(missionControlApiRef);
+  const { retryCount, onAuthError } = useMCAuth();
   const [state, setState] = useState<UseHealthChecksResult>({ checks: [], loading: true });
 
   useEffect(() => {
@@ -32,14 +34,19 @@ export function useHealthChecksForEntity(configIds: string[]): UseHealthChecksRe
         }
       } catch (error) {
         if (!cancelled) {
-          setState({ checks: [], loading: false, error: error as Error });
+          if (error instanceof MissionControlAuthError) {
+            onAuthError();
+            setState({ checks: [], loading: true });
+          } else {
+            setState({ checks: [], loading: false, error: error as Error });
+          }
         }
       }
     }
 
     load();
     return () => { cancelled = true; };
-  }, [configIds.join(','), api]);
+  }, [configIds.join(','), api, retryCount, onAuthError]);
 
   return state;
 }

@@ -95,6 +95,30 @@ export interface PlaybookRun {
   playbooks?: { id: string; name: string; spec?: any };
 }
 
+export interface PlaybookParam {
+  name: string;
+  label: string;
+  type: string;
+  default?: any;
+  required?: boolean;
+  description?: string;
+  properties?: Record<string, any>;
+}
+
+export interface RunnablePlaybook {
+  id: string;
+  name: string;
+  title?: string;
+  icon?: string;
+  category?: string;
+  parameters?: PlaybookParam[];
+}
+
+export interface PlaybookRunResponse {
+  run_id: string;
+  starts_at: string;
+}
+
 export interface ConfigAccessSummary {
   config_id: string;
   config_name?: string;
@@ -133,7 +157,25 @@ export interface CatalogSummary {
   checksUnhealthy: number;
 }
 
+export type AuthMethod = 'static-token' | 'token-exchange' | 'pass-through';
+
+export interface AuthConfig {
+  authMethod: AuthMethod;
+  baseUrl?: string;
+}
+
+export class MissionControlAuthError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'MissionControlAuthError';
+  }
+}
+
 export interface MissionControlApi {
+  getAuthConfig(): Promise<AuthConfig>;
   getConfigById(id: string): Promise<ConfigItem>;
   getConfigsByIds(ids: string[]): Promise<ConfigItem[]>;
   getConfigDetail(id: string): Promise<ConfigDetail>;
@@ -145,6 +187,9 @@ export interface MissionControlApi {
   getAccessSummaryForConfig(configId: string): Promise<ConfigAccessSummary[]>;
   getCatalogSummary(configIds: string[]): Promise<CatalogSummary>;
   getChanges(configIds: string[]): Promise<ConfigChange[]>;
+  getPlaybooksForConfig(configId: string): Promise<RunnablePlaybook[]>;
+  getPlaybookParams(playbookId: string, configId?: string): Promise<PlaybookParam[]>;
+  submitPlaybookRun(playbookId: string, configId?: string, params?: Record<string, any>): Promise<PlaybookRunResponse>;
 }
 
 export const missionControlApiRef = createApiRef<MissionControlApi>({

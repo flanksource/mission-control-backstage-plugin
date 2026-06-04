@@ -4,6 +4,7 @@ import { Content, ContentHeader, Progress, ResponseErrorPanel } from '@backstage
 import { useApi } from '@backstage/core-plugin-api';
 import {
   missionControlApiRef,
+  MissionControlAuthError,
   ConfigChange,
   RelatedConfig,
   HealthCheckSummary,
@@ -11,12 +12,14 @@ import {
   ConfigAccessSummary,
 } from '../../api/types';
 import { useConfigForEntity } from '../../hooks/useConfigForEntity';
+import { useMCAuth } from '../MissionControlAuthProvider/MissionControlAuthProvider';
 import { EntityMissionControlConfigTable } from '../EntityMissionControlConfigTable/EntityMissionControlConfigTable';
 import { EntityMissionControlChecksTable } from '../EntityMissionControlChecksTable/EntityMissionControlChecksTable';
 import { ConfigChangesTable } from '../ConfigChangesTable/ConfigChangesTable';
 import { ConfigRelationshipsTable } from '../ConfigRelationshipsTable/ConfigRelationshipsTable';
 import { ConfigSpecView } from '../ConfigSpecView/ConfigSpecView';
 import { PlaybookRunsTable } from '../PlaybookRunsTable/PlaybookRunsTable';
+import { PlaybookActionsMenu } from '../PlaybookActions/PlaybookActionsMenu';
 import { ConfigAccessTable } from '../ConfigAccessTable/ConfigAccessTable';
 
 interface TabPanelProps {
@@ -30,11 +33,20 @@ function TabPanel({ children, value, index }: TabPanelProps) {
   return <Box pt={2}>{children}</Box>;
 }
 
-function useLazyFetch<T>(fetcher: () => Promise<T>, active: boolean): { data: T | null; loading: boolean; error?: Error } {
+function useLazyFetch<T>(
+  fetcher: () => Promise<T>,
+  active: boolean,
+  opts?: { retryCount?: number; onAuthError?: () => void },
+): { data: T | null; loading: boolean; error?: Error } {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error>();
   const [fetched, setFetched] = useState(false);
+  const retryCount = opts?.retryCount ?? 0;
+
+  useEffect(() => {
+    setFetched(false);
+  }, [retryCount]);
 
   useEffect(() => {
     if (!active || fetched) return;
@@ -42,7 +54,16 @@ function useLazyFetch<T>(fetcher: () => Promise<T>, active: boolean): { data: T 
     setFetched(true);
     fetcher()
       .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e); setLoading(false); });
+      .catch(e => {
+        if (e instanceof MissionControlAuthError) {
+          opts?.onAuthError?.();
+          setFetched(false);
+          setLoading(false);
+        } else {
+          setError(e);
+          setLoading(false);
+        }
+      });
   }, [active, fetched, fetcher]);
 
   return { data, loading, error };
@@ -51,34 +72,42 @@ function useLazyFetch<T>(fetcher: () => Promise<T>, active: boolean): { data: T 
 export function EntityMissionControlContent() {
   const { configs, loading: configsLoading, error: configsError } = useConfigForEntity();
   const api = useApi(missionControlApiRef);
+  const { retryCount, onAuthError } = useMCAuth();
   const [tab, setTab] = useState(0);
+  const [playbookRetry, setPlaybookRetry] = useState(0);
 
   const configIds = configs.map(c => c.id);
   const primaryConfigId = configIds[0];
+  const authOpts = { retryCount, onAuthError };
 
   const changes = useLazyFetch<ConfigChange[]>(
     () => Promise.all(configIds.map(id => api.getChangesForConfig(id))).then(r => r.flat()),
     tab === 1 && configIds.length > 0,
+    authOpts,
   );
 
   const relationships = useLazyFetch<RelatedConfig[]>(
     () => Promise.all(configIds.map(id => api.getRelatedConfigs(id, 1))).then(r => r.flat()),
     tab === 2 && configIds.length > 0,
+    authOpts,
   );
 
   const checks = useLazyFetch<HealthCheckSummary[]>(
     () => Promise.all(configIds.map(id => api.getHealthChecksForConfig(id))).then(r => r.flat()),
     tab === 4 && configIds.length > 0,
+    authOpts,
   );
 
   const playbooks = useLazyFetch<PlaybookRun[]>(
     () => Promise.all(configIds.map(id => api.getPlaybookRunsForConfig(id))).then(r => r.flat()),
     tab === 5 && configIds.length > 0,
+    { retryCount: retryCount + playbookRetry, onAuthError },
   );
 
   const access = useLazyFetch<ConfigAccessSummary[]>(
     () => Promise.all(configIds.map(id => api.getAccessSummaryForConfig(id))).then(r => r.flat()),
     tab === 6 && configIds.length > 0,
+    authOpts,
   );
 
   if (configsError) return <ResponseErrorPanel error={configsError} />;
@@ -129,6 +158,14 @@ export function EntityMissionControlContent() {
       </TabPanel>
 
       <TabPanel value={tab} index={5}>
+        {primaryConfigId && (
+          <Box mb={1}>
+            <PlaybookActionsMenu
+              configId={primaryConfigId}
+              onRunSubmitted={() => setPlaybookRetry(c => c + 1)}
+            />
+          </Box>
+        )}
         {playbooks.error && <ResponseErrorPanel error={playbooks.error} />}
         <PlaybookRunsTable runs={playbooks.data ?? []} loading={playbooks.loading} />
       </TabPanel>

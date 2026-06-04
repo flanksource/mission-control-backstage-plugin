@@ -20,7 +20,15 @@ export class MissionControlAuth {
     this.apiToken = config.getOptionalString('missionControl.auth.apiToken');
   }
 
+  get method(): string {
+    return this.authMethod;
+  }
+
   async getAuthHeader(userRef?: string): Promise<string> {
+    if (this.authMethod === 'pass-through') {
+      throw new Error('getAuthHeader is not supported in pass-through mode; the browser authenticates directly with Mission Control');
+    }
+
     if (this.authMethod === 'static-token') {
       if (!this.apiToken) {
         throw new Error('missionControl.auth.apiToken is required for static-token auth');

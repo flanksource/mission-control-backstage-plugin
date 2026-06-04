@@ -15,10 +15,12 @@ export {
   MISSION_CONTROL_AGGREGATION_DEPTH_ANNOTATION,
 } from './utils/annotations';
 
-export { missionControlApiRef } from './api/types';
+export { missionControlApiRef, MissionControlAuthError } from './api/types';
 
 export type {
   MissionControlApi,
+  AuthConfig,
+  AuthMethod,
   ConfigItem,
   ConfigDetail,
   ConfigChange,
@@ -26,5 +28,8 @@ export type {
   HealthCheckSummary,
   CatalogSummary,
   PlaybookRun,
+  PlaybookParam,
+  RunnablePlaybook,
+  PlaybookRunResponse,
   ConfigAccessSummary,
 } from './api/types';

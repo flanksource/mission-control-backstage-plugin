@@ -1,8 +1,14 @@
 import { MissionControlClient } from './MissionControlClient';
 
+const defaultAuthConfigResponse = {
+  ok: true,
+  json: () => ({ authMethod: 'static-token' }),
+};
+
 function createMockFetchApi(responses: Record<string, { ok: boolean; json: () => any; status?: number; statusText?: string }>) {
   return {
     fetch: jest.fn(async (url: string, _init?: RequestInit) => {
+      if (url.includes('/auth/config')) return defaultAuthConfigResponse;
       for (const [pattern, response] of Object.entries(responses)) {
         if (url.includes(pattern)) return response;
       }
@@ -96,5 +102,54 @@ describe('MissionControlClient', () => {
 
     const result = await client.getHealthChecksForConfig('cfg1');
     expect(result).toEqual(checks);
+  });
+
+  it('getPlaybooksForConfig calls /api/playbook/list with config_id', async () => {
+    const playbooks = [{ id: 'pb1', name: 'restart', title: 'Restart Pod' }];
+    const client = new MissionControlClient({
+      discoveryApi: createMockDiscoveryApi(),
+      fetchApi: createMockFetchApi({
+        '/api/playbook/list?config_id=cfg1': { ok: true, json: () => playbooks },
+      }),
+    });
+
+    const result = await client.getPlaybooksForConfig('cfg1');
+    expect(result).toEqual(playbooks);
+  });
+
+  it('getPlaybookParams POSTs to /api/playbook/:id/params', async () => {
+    const params = [{ name: 'reason', label: 'Reason', type: 'text' }];
+    const fetchApi = createMockFetchApi({
+      '/api/playbook/pb1/params': { ok: true, json: () => ({ params }) },
+    });
+    const client = new MissionControlClient({
+      discoveryApi: createMockDiscoveryApi(),
+      fetchApi,
+    });
+
+    const result = await client.getPlaybookParams('pb1', 'cfg1');
+    expect(result).toEqual(params);
+    expect(fetchApi.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/playbook/pb1/params'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('submitPlaybookRun POSTs to /api/playbook/run', async () => {
+    const response = { run_id: 'run1', starts_at: '2026-01-01T00:00:00Z' };
+    const fetchApi = createMockFetchApi({
+      '/api/playbook/run': { ok: true, json: () => response },
+    });
+    const client = new MissionControlClient({
+      discoveryApi: createMockDiscoveryApi(),
+      fetchApi,
+    });
+
+    const result = await client.submitPlaybookRun('pb1', 'cfg1', { reason: 'test' });
+    expect(result).toEqual(response);
+    expect(fetchApi.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/playbook/run'),
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 });
